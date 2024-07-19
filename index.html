@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BryNotes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial;
+            background-color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        body.dark-mode {
+            background-color: #1c1c1c;
+            color: #e0e0e0;
+        }
+
+        #container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        #addNote {
+            background: #ffdd00;
+            font-family: inherit;
+            padding: 0.6em 1.3em;
+            font-weight: 900;
+            font-size: 18px;
+            border: 3px solid #333;
+            border-radius: 0.4em;
+            box-shadow: 0.1em 0.1em;
+            cursor: pointer;
+            margin-top: 10px;
+            position: absolute;
+            bottom: 80px;
+            left: 317px;
+            transition: background 0.3s;
+        }
+
+        #addNote:hover {
+            background: #f9b300;
+        }
+
+        #notes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .note {
+            background-color: #ffff99;
+            width: 200px;
+            height: 250px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            cursor: move;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .note-header, .note-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background-color: #fff;
+            border-bottom: 2px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .note-footer {
+            border-top: 2px solid #ddd;
+            border-bottom: none;
+        }
+
+        .note textarea {
+            width: 100%;
+            height: calc(100% - 120px); /* Ajusta altura para espaço dos botões e cabeçalhos */
+            border: none;
+            background: transparent;
+            resize: none;
+            font-size: 16px;
+            outline: none;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .note button, .note .share-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .note button {
+            color: #e57373; /* Cor do ícone de fechar */
+            transition: color 0.3s;
+        }
+
+        .note button:hover {
+            color: #c62828;
+        }
+
+        .note .share-button {
+            color: #25D366; /* Cor do ícone do WhatsApp */
+            transition: color 0.3s;
+        }
+
+        .note .share-button:hover {
+            color: #1b5e20;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+        }
+
+        .color-picker div {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            transition: border-color 0.3s;
+        }
+
+        .color-picker div:hover {
+            border-color: #000;
+        }
+
+        #themeToggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 40px;
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <font color="#A9A9A9"><h1>BryNotes</h1></font>
+        <button id="addNote"><i class="fas fa-plus"></i></button>
+        <div id="notes"></div>
+    </div>
+    <button id="themeToggle"><i class="fas fa-sun"></i></button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const addNoteButton = document.getElementById('addNote');
+            const notesContainer = document.getElementById('notes');
+            const themeToggle = document.getElementById('themeToggle');
+
+            const colors = ['#ffff99', '#d0e6f0', '#b2fab4', '#f0b2b2'];
+
+            const loadNotes = () => {
+                const notes = JSON.parse(localStorage.getItem('notes')) || [];
+                notesContainer.innerHTML = '';
+                notes.forEach(note => createNoteElement(note.id, note.content, note.color, note.position, note.size));
+            };
+
+            const saveNotes = () => {
+                const notes = [];
+                document.querySelectorAll('.note').forEach(noteElement => {
+                    const id = noteElement.getAttribute('data-id');
+                    const content = noteElement.querySelector('textarea').value;
+                    const color = noteElement.style.backgroundColor;
+                    const position = {
+                        left: noteElement.style.left,
+                        top: noteElement.style.top
+                    };
+                    const size = {
+                        width: noteElement.style.width,
+                        height: noteElement.style.height
+                    };
+                    notes.push({ id, content, color, position, size });
+                });
+                localStorage.setItem('notes', JSON.stringify(notes));
+            };
+
+            const createNoteElement = (id, content = '', color = '#ffff99', position = { left: '50%', top: '50%' }, size = { width: '200px', height: '250px' }) => {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'note';
+                noteElement.style.backgroundColor = color;
+                noteElement.setAttribute('data-id', id);
+                noteElement.style.left = position.left;
+                noteElement.style.top = position.top;
+                noteElement.style.width = size.width;
+                noteElement.style.height = size.height;
+
+                const header = document.createElement('div');
+                header.className = 'note-header';
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '×';
+                deleteButton.addEventListener('click', () => {
+                    noteElement.remove();
+                    saveNotes();
+                });
+
+                const shareButton = document.createElement('button');
+                shareButton.className = 'share-button';
+                shareButton.innerHTML = '<i class="fab fa-whatsapp"></i>';
+                shareButton.addEventListener('click', () => {
+                    const message = encodeURIComponent(noteElement.querySelector('textarea').value);
+                    const url = `https://wa.me/?text=${message}`;
+                    window.open(url, '_blank');
+                });
+
+                header.appendChild(shareButton);
+                header.appendChild(deleteButton);
+
+                const textarea = document.createElement('textarea');
+                textarea.value = content;
+                textarea.addEventListener('input', saveNotes);
+
+                const footer = document.createElement('div');
+                footer.className = 'note-footer';
+
+                const colorPicker = document.createElement('div');
+                colorPicker.className = 'color-picker';
+
+                colors.forEach(color => {
+                    const colorOption = document.createElement('div');
+                    colorOption.style.backgroundColor = color;
+                    colorOption.addEventListener('click', () => {
+                        noteElement.style.backgroundColor = color;
+                        saveNotes();
+                    });
+                    colorPicker.appendChild(colorOption);
+                });
+
+                footer.appendChild(colorPicker);
+
+                noteElement.appendChild(header);
+                noteElement.appendChild(textarea);
+                noteElement.appendChild(footer);
+                notesContainer.appendChild(noteElement);
+
+                const addDragAndDropListeners = (element) => {
+                    let offsetX, offsetY;
+
+                    const onMouseMove = (e) => {
+                        element.style.left = `${e.clientX - offsetX}px`;
+                        element.style.top = `${e.clientY - offsetY}px`;
+                    };
+
+                    const onTouchMove = (e) => {
+                        const touch = e.touches[0];
+                        element.style.left = `${touch.clientX - offsetX}px`;
+                        element.style.top = `${touch.clientY - offsetY}px`;
+                    };
+
+                    element.addEventListener('mousedown', (e) => {
+                        offsetX = e.clientX - element.getBoundingClientRect().left;
+                        offsetY = e.clientY - element.getBoundingClientRect().top;
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', () => {
+                            document.removeEventListener('mousemove', onMouseMove);
+                            saveNotes();
+                        }, { once: true });
+                    });
+
+                    element.addEventListener('touchstart', (e) => {
+                        const touch = e.touches[0];
+                        offsetX = touch.clientX - element.getBoundingClientRect().left;
+                        offsetY = touch.clientY - element.getBoundingClientRect().top;
+                        document.addEventListener('touchmove', onTouchMove);
+                        document.addEventListener('touchend', () => {
+                            document.removeEventListener('touchmove', onTouchMove);
+                            saveNotes();
+                        }, { once: true });
+                    });
+                };
+
+                const addPinchZoomListeners = (element) => {
+                    let initialDistance = 0;
+                    let initialWidth = parseFloat(getComputedStyle(element).width);
+                    let initialHeight = parseFloat(getComputedStyle(element).height);
+
+                    const getDistance = (touches) => {
+                        const dx = touches[0].clientX - touches[1].clientX;
+                        const dy = touches[0].clientY - touches[1].clientY;
+                        return Math.sqrt(dx * dx + dy * dy);
+                    };
+
+                    const onTouchMove = (e) => {
+                        if (e.touches.length === 2) {
+                            const newDistance = getDistance(e.touches);
+                            const scale = newDistance / initialDistance;
+                            element.style.width = `${initialWidth * scale}px`;
+                            element.style.height = `${initialHeight * scale}px`;
+                        }
+                    };
+
+                    element.addEventListener('touchstart', (e) => {
+                        if (e.touches.length === 2) {
+                            initialDistance = getDistance(e.touches);
+                            initialWidth = parseFloat(getComputedStyle(element).width);
+                            initialHeight = parseFloat(getComputedStyle(element).height);
+                            document.addEventListener('touchmove', onTouchMove);
+                        }
+                    });
+
+                    document.addEventListener('touchend', (e) => {
+                        if (e.touches.length < 2) {
+                            document.removeEventListener('touchmove', onTouchMove);
+                            saveNotes();
+                        }
+                    });
+                };
+
+                addDragAndDropListeners(noteElement);
+                addPinchZoomListeners(noteElement);
+                saveNotes();
+            };
+
+            addNoteButton.addEventListener('click', () => {
+                const id = Date.now().toString();
+                createNoteElement(id);
+            });
+
+            const applyTheme = () => {
+                const darkMode = document.body.classList.contains('dark-mode');
+                document.body.style.backgroundColor = darkMode ? '#333' : '#e0e0e0';
+                document.body.style.color = darkMode ? '#e0e0e0' : '#333';
+                themeToggle.innerHTML = darkMode ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+            };
+
+            const toggleTheme = () => {
+                const isDarkMode = document.body.classList.toggle('dark-mode');
+                localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+                applyTheme();
+            };
+
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+
+            applyTheme();
+            themeToggle.addEventListener('click', toggleTheme);
+
+            loadNotes();
+        });
+    </script>
+</body>
+</html>
